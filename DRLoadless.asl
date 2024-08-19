@@ -1,4 +1,4 @@
-state("DeadRising", "SteamPatch3")
+fstate("DeadRising", "SteamPatch3")
 {
     bool IsLoading : 0x1945F70, 0x70;
 
@@ -16,12 +16,12 @@ state("DeadRising", "SteamPatch3")
     int PlayerKills : 0x1959EA0, 0x3B0;
     int PlayerLevel : 0x1946950, 0x68;
     int RoomId : 0x1945F70, 0x48;
-    float BossHealth : 0x1CF2620, 0x118, 0x12EC;
-    float Boss2Health : 0x1CF2620, 0x118, 0x10, 0x12EC;
-    float Boss3Health : 0x1CF2620, 0x118, 0x10, 0x10, 0x12EC;
-    float Convict1Health : 0x1CF2620, 0xA0, 0x1220, 0x1C0, 0x12EC;
-    float Convict2Health : 0x1CF2620, 0xA0, 0x1220, 0x1A0, 0x12EC;
-    float Convict3Health : 0x1CF2620, 0xA0, 0x1220, 0x180, 0x12EC;
+    int BossHealth : 0x1CF2620, 0x118, 0x12EC;
+    int Boss2Health : 0x1CF2620, 0x118, 0x10, 0x12EC;
+    int Boss3Health : 0x1CF2620, 0x118, 0x10, 0x10, 0x12EC;
+    int Convict1Health : 0x1CF2620, 0xA0, 0x1220, 0x1C0, 0x12EC;
+    int Convict2Health : 0x1CF2620, 0xA0, 0x1220, 0x1A0, 0x12EC;
+    int Convict3Health : 0x1CF2620, 0xA0, 0x1220, 0x180, 0x12EC;
     uint PhotoStatsPtr : 0x1959EA0, 0xA8;
 }
 
@@ -454,6 +454,17 @@ init
         var watcher = new MemoryWatcher<byte>(statePtr) { Name = i.ToString() };
 
         vars.NPCStates.Add(watcher);
+    }
+    // Add Watcher for NPCHealth
+
+    vars.NPCHealth = new MemoryWatcherList();
+
+    for (int i = 0; i < 51; ++i)
+    {
+        var healthPtr = new DeepPointer("DeadRising.exe", 0x1946660, 0x58, 0x8 * i, 0x18);
+        var watcher = new MemoryWatcher<uint>(healthPtr) { Name = i.ToString() };
+
+        vars.NPCHealth.Add(watcher);
     }
 
     // Add Watchers for Transmissions
