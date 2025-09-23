@@ -1,4 +1,4 @@
-state("DeadRising", "SteamPatch3")
+state("DeadRising", "ENG")
 {
     bool IsLoading : 0x1945F70, 0x70;
 
@@ -22,7 +22,30 @@ state("DeadRising", "SteamPatch3")
     float Convict1Health : 0x1CF2620, 0xA0, 0x1220, 0x1C0, 0x12EC;
     float Convict2Health : 0x1CF2620, 0xA0, 0x1220, 0x1A0, 0x12EC;
     float Convict3Health : 0x1CF2620, 0xA0, 0x1220, 0x180, 0x12EC;
-    uint PhotoStatsPtr : 0x1959EA0, 0xA8;
+}
+
+state("DeadRising", "JPN")
+{
+    bool IsLoading : 0x1945F80, 0x70;
+
+    byte CaseMenuState : 0x1946FE0, 0x2F058, 0x182;
+
+    byte Bombs : 0x1944DD8, 0x20DC0, 0x848D;
+    byte MutinyByte : 0x1944DD8, 0x20EC4;
+    byte RequestByte : 0x1944DD8, 0x20EC7;
+    int CampaignProgress : 0x1944DD8, 0x20DC0, 0x150;
+    int CutsceneId : 0x1944DD8, 0x20DC0, 0x8308;
+    int Supplies : 0x1944DD8, 0x20FB0;
+    int InGameTime : 0x1946FE0, 0x2F058, 0x198;
+    int PlayerKills : 0x1959EB8, 0x3B0;
+    int PlayerLevel : 0x1946970, 0x68;
+    int RoomId : 0x1945F80, 0x48;
+    float BossHealth : 0x1CF2640, 0x118, 0x12EC;
+    float Boss2Health : 0x1CF2640, 0x118, 0x10, 0x12EC;
+    float Boss3Health : 0x1CF2640, 0x118, 0x10, 0x10, 0x12EC;
+    float Convict1Health : 0x1CF2640, 0xA0, 0x1220, 0x1C0, 0x12EC;
+    float Convict2Health : 0x1CF2640, 0xA0, 0x1220, 0x1A0, 0x12EC;
+    float Convict3Health : 0x1CF2640, 0xA0, 0x1220, 0x180, 0x12EC;
 }
 
 startup
@@ -283,6 +306,24 @@ startup
 
 init 
 {
+string MD5Hash;
+    using (var md5 = System.Security.Cryptography.MD5.Create())
+    using (var s = File.Open(modules.First().FileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+    MD5Hash = md5.ComputeHash(s).Select(x => x.ToString("X2")).Aggregate((a, b) => a + b);
+    print("Hash is: " + MD5Hash);
+
+    switch (MD5Hash)
+    {
+        case "0017200B07F7721FBA8624A028D24F60":
+            version = "JPN";
+            break;
+
+        default:
+            version = "ENG";
+            break;
+    }
+    print("Version is: " + version);
+    vars.ResetCounter = 0;
     // Pending splits (for PP collector mostly)
     vars.PendingSplits = 0;
 
@@ -447,16 +488,26 @@ init
     
     // Add Watchers for NPC Statues
     vars.NPCStates = new MemoryWatcherList();
+
+    int NPCPtr;
+    if (version == "ENG")
+    {
+        NPCPtr = 0x1946660;
+    }
+    else
+    {
+        NPCPtr = 0x1946678;
+    }
     
     for (int i = 0; i < 51; ++i)
     {
-        var statePtr = new DeepPointer("DeadRising.exe", 0x1946660, 0x58, 0x8 * i, 0x44);
+        var statePtr = new DeepPointer("DeadRising.exe", NPCPtr, 0x58, 0x8 * i, 0x44);
         var watcher = new MemoryWatcher<byte>(statePtr) { Name = i.ToString() };
 
         vars.NPCStates.Add(watcher);
     }
 
-    // Add Watchers for Transmissions
+    // Add Watchers for Transmissions, Will work for Japanese
     vars.Transmissions = new MemoryWatcherList();
 
     for (int i = 0; i < 11; ++i)
@@ -467,6 +518,17 @@ init
             var watcher = new MemoryWatcher<byte>(TransmissionPtr) { Name = i.ToString() };
             vars.Transmissions.Add(watcher);
         }
+    }
+
+    // Add Watchers for NPC Health
+    vars.NPCHealth = new MemoryWatcherList();
+
+    for (int i = 0; i < 51; ++i)
+    {
+        var healthPtr = new DeepPointer("DeadRising.exe", NPCPtr, 0x58, 0x8 * i, 0x18);
+        var watcher = new MemoryWatcher<uint>(healthPtr) { Name = i.ToString() };
+
+        vars.NPCHealth.Add(watcher);
     }
 
     // Use for PP Stickers
@@ -508,6 +570,16 @@ start
             vars.DeadSurvivors.Clear();
         }
 
+        int PhotoPtr;
+        if (version == "ENG")
+        {
+            PhotoPtr = 0x1CF3128;
+        }
+        else
+        {
+            PhotoPtr = 0x1CF3170;
+        }
+
         // Load the PP Stickers watchers
         if (settings["ppStickers"] && !vars.PPStickersLoaded)
         {
@@ -516,7 +588,7 @@ start
 
             for (int i = 0; i < 100; ++i)
             {
-                var ppStickerPtr = new DeepPointer("DeadRising.exe", 0x1CF3128, 0x40, 0x6E8 + (0x4 * i));
+                var ppStickerPtr = new DeepPointer("DeadRising.exe", PhotoPtr, 0x40, 0x6E8 + (0x4 * i));
                 var watcher = new MemoryWatcher<int>(ppStickerPtr) { Name = i.ToString() };
 
                 vars.PPStickersCount += ppStickerPtr.Deref<int>(game);
@@ -629,6 +701,10 @@ split
         {
             return settings["otBrock"];
         }
+        if (current.CutsceneId == 134 && old.CutsceneId != 134)
+        {
+            vars.ResetCounter += 1;
+        }
     }
 
     // Willamette Genocider Case 1-4
@@ -656,8 +732,16 @@ split
                     
                     if (game != null)
                     {
-
-                        string npcName = new DeepPointer("DeadRising.exe", 0x1946660, 0x58, 0x8 * i, 0x8, 0x8).DerefString(game, 6);
+                        int NPCPtr;
+                        if (version == "ENG")
+                        {
+                            NPCPtr = 0x1946660;
+                        }
+                        else
+                        {
+                            NPCPtr = 0x1946678;
+                        }
+                        string npcName = new DeepPointer("DeadRising.exe", NPCPtr, 0x58, 0x8 * i, 0x8, 0x8).DerefString(game, 6);
                     
                         if (!string.IsNullOrEmpty(npcName) && !string.IsNullOrEmpty(npcName.Trim()) && npcName.Trim()[0] == 'u')
                         {
@@ -731,12 +815,20 @@ split
             if (settings["GroupSaved"] && watcher.Changed && watcher.Current == 4 && watcher.Old != 11 && EmptyParty)
             {
                 int i = int.Parse(watcher.Name);
-                string npcName = new DeepPointer("DeadRising.exe", 0x1946660, 0x58, 0x8 * i, 0x8, 0x8).DerefString(game, 6);
+                int NPCPtr;
+                if (version == "ENG")
+                {
+                    NPCPtr = 0x1946660;
+                }
+                else
+                {
+                    NPCPtr = 0x1946678;
+                }
+                string npcName = new DeepPointer("DeadRising.exe", NPCPtr, 0x58, 0x8 * i, 0x8, 0x8).DerefString(game, 6);
                 return vars.Survivors.Contains(npcName);
             }
         }
     }
-
     // Mutinies & Requests
     if (settings["MRSplits"])
     {
