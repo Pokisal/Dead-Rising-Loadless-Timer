@@ -261,7 +261,7 @@ startup
             settings.Add("psychoKent3", false, "Kent Third Encounter", "psycho");
 
         settings.Add("survivor", false, "SurvivorSkip", "splits"); 
-            settings.Add("GroupSaved", false, "Split on group saved", "survivor");
+            settings.Add("GroupSaved", false, "Split on Group Saved", "survivor");
             settings.Add("survivorEscape", false, "Ending B", "survivor");
 
         settings.Add("MRSplits", false, "Mutinies & Requests", "splits");
@@ -570,6 +570,14 @@ start
             vars.DeadSurvivors.Clear();
         }
 
+        if (settings["GroupSaved"])
+        {
+            foreach (var watcher in vars.NPCStates)
+            {
+                watcher.Current = 0;
+            }
+        }
+
         int PhotoPtr;
         if (version == "ENG")
         {
@@ -798,7 +806,7 @@ split
     }
 
     // Survivors
-    if (settings["survivor"])
+    if (settings["GroupSaved"])
     {
         bool EmptyParty = true;
         vars.NPCStates.UpdateAll(game);
@@ -812,7 +820,7 @@ split
 
         foreach (var watcher in vars.NPCStates)
         {
-            if (settings["GroupSaved"] && watcher.Changed && watcher.Current == 4 && watcher.Old != 11 && EmptyParty)
+            if (watcher.Changed && watcher.Current == 4 && watcher.Old != 11 && EmptyParty)
             {
                 int i = int.Parse(watcher.Name);
                 int NPCPtr;
@@ -829,6 +837,7 @@ split
             }
         }
     }
+
     // Mutinies & Requests
     if (settings["MRSplits"])
     {
