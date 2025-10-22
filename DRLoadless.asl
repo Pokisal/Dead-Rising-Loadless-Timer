@@ -157,7 +157,6 @@ startup
                 {
                     settings.Add("case7Bomb" + i.ToString(), false, "Bomb #" + i.ToString(), "case7");
                 }
-                settings.Add("Carlito3", false, "Carlito 3", "case7");
                 settings.Add("case7.2", false, "Case 7-2", "case7");
                 settings.Add("case7Transitions", false, "Room Transitions", "case7");
                     settings.Add("case7SR->RT", false, "Security Room->Rooftop", "case7Transitions");
@@ -259,6 +258,7 @@ startup
             settings.Add("psychoSean", false, "Sean", "psycho");
             settings.Add("psychoPaul", false, "Paul", "psycho");
             settings.Add("psychoKent3", false, "Kent Third Encounter", "psycho");
+            settings.Add("Carlito3", false, "Carlito 3", "psycho");
 
         settings.Add("survivor", false, "SurvivorSkip", "splits"); 
             settings.Add("GroupSaved", false, "Split on Group Saved", "survivor");
@@ -806,13 +806,10 @@ split
     }
 
     // Survivors
-    if (settings["GroupSaved"])
+    if (settings["GroupSaved"] && !current.IsLoading)
     {
         bool EmptyParty = true;
-        if (!current.IsLoading)
-        {
-            vars.NPCStates.UpdateAll(game);
-        }
+        vars.NPCStates.UpdateAll(game);
         foreach (var watcher in vars.NPCStates)
         {
             if (watcher.Current == 2)
