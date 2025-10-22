@@ -809,7 +809,10 @@ split
     if (settings["GroupSaved"])
     {
         bool EmptyParty = true;
-        vars.NPCStates.UpdateAll(game);
+        if (!current.IsLoading)
+        {
+            vars.NPCStates.UpdateAll(game);
+        }
         foreach (var watcher in vars.NPCStates)
         {
             if (watcher.Current == 2)
