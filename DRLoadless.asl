@@ -298,8 +298,8 @@ startup
             settings.Add("wgSurvivors", false, "Survivors death", "willametteGenocider");
 
         // Otis Transceiver Calls
-        settings.Add("Otis", false, "Otis Transmissions", "splits");
-            settings.Add("Otis1", false, "Split on every Otis Transmission picked up", "Otis");
+        settings.Add("Transmission", false, "Otis Transmissions", "splits");
+            settings.Add("Otis", false, "Split on every Otis Transmission picked up", "Transmission");
 
 #endregion
 }
@@ -310,19 +310,26 @@ string MD5Hash;
     using (var md5 = System.Security.Cryptography.MD5.Create())
     using (var s = File.Open(modules.First().FileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
     MD5Hash = md5.ComputeHash(s).Select(x => x.ToString("X2")).Aggregate((a, b) => a + b);
+
     print("Hash is: " + MD5Hash);
 
     switch (MD5Hash)
     {
         case "0017200B07F7721FBA8624A028D24F60":
             version = "JPN";
+            vars.NPCPtr = 0x1946678;
+            vars.PhotoPtr = 0x1CF3170;
             break;
 
-        default:
+        case "015AEC72A70696A7F8F0AE57FFEE727F":
             version = "ENG";
+            vars.NPCPtr = 0x1946660;
+            vars.PhotoPtr = 0x1CF3128;
             break;
     }
+
     print("Version is: " + version);
+
     vars.ResetCounter = 0;
     // Pending splits (for PP collector mostly)
     vars.PendingSplits = 0;
@@ -488,20 +495,10 @@ string MD5Hash;
     
     // Add Watchers for NPC Statues
     vars.NPCStates = new MemoryWatcherList();
-
-    int NPCPtr;
-    if (version == "ENG")
-    {
-        NPCPtr = 0x1946660;
-    }
-    else
-    {
-        NPCPtr = 0x1946678;
-    }
     
     for (int i = 0; i < 51; ++i)
     {
-        var statePtr = new DeepPointer("DeadRising.exe", NPCPtr, 0x58, 0x8 * i, 0x44);
+        var statePtr = new DeepPointer("DeadRising.exe", vars.NPCPtr, 0x58, 0x8 * i, 0x44);
         var watcher = new MemoryWatcher<byte>(statePtr) { Name = i.ToString() };
 
         vars.NPCStates.Add(watcher);
@@ -525,7 +522,7 @@ string MD5Hash;
 
     for (int i = 0; i < 51; ++i)
     {
-        var healthPtr = new DeepPointer("DeadRising.exe", NPCPtr, 0x58, 0x8 * i, 0x18);
+        var healthPtr = new DeepPointer("DeadRising.exe", vars.NPCPtr, 0x58, 0x8 * i, 0x18);
         var watcher = new MemoryWatcher<uint>(healthPtr) { Name = i.ToString() };
 
         vars.NPCHealth.Add(watcher);
@@ -574,18 +571,8 @@ start
         {
             foreach (var watcher in vars.NPCStates)
             {
-                watcher.Current = 0;
+                watcher.Reset();
             }
-        }
-
-        int PhotoPtr;
-        if (version == "ENG")
-        {
-            PhotoPtr = 0x1CF3128;
-        }
-        else
-        {
-            PhotoPtr = 0x1CF3170;
         }
 
         // Load the PP Stickers watchers
@@ -596,7 +583,7 @@ start
 
             for (int i = 0; i < 100; ++i)
             {
-                var ppStickerPtr = new DeepPointer("DeadRising.exe", PhotoPtr, 0x40, 0x6E8 + (0x4 * i));
+                var ppStickerPtr = new DeepPointer("DeadRising.exe", vars.PhotoPtr, 0x40, 0x6E8 + (0x4 * i));
                 var watcher = new MemoryWatcher<int>(ppStickerPtr) { Name = i.ToString() };
 
                 vars.PPStickersCount += ppStickerPtr.Deref<int>(game);
@@ -740,16 +727,7 @@ split
                     
                     if (game != null)
                     {
-                        int NPCPtr;
-                        if (version == "ENG")
-                        {
-                            NPCPtr = 0x1946660;
-                        }
-                        else
-                        {
-                            NPCPtr = 0x1946678;
-                        }
-                        string npcName = new DeepPointer("DeadRising.exe", NPCPtr, 0x58, 0x8 * i, 0x8, 0x8).DerefString(game, 6);
+                        string npcName = new DeepPointer("DeadRising.exe", vars.NPCPtr, 0x58, 0x8 * i, 0x8, 0x8).DerefString(game, 6);
                     
                         if (!string.IsNullOrEmpty(npcName) && !string.IsNullOrEmpty(npcName.Trim()) && npcName.Trim()[0] == 'u')
                         {
@@ -809,7 +787,9 @@ split
     if (settings["GroupSaved"] && !current.IsLoading)
     {
         bool EmptyParty = true;
+
         vars.NPCStates.UpdateAll(game);
+
         foreach (var watcher in vars.NPCStates)
         {
             if (watcher.Current == 2)
@@ -823,16 +803,7 @@ split
             if (watcher.Changed && watcher.Current == 4 && watcher.Old != 11 && EmptyParty)
             {
                 int i = int.Parse(watcher.Name);
-                int NPCPtr;
-                if (version == "ENG")
-                {
-                    NPCPtr = 0x1946660;
-                }
-                else
-                {
-                    NPCPtr = 0x1946678;
-                }
-                string npcName = new DeepPointer("DeadRising.exe", NPCPtr, 0x58, 0x8 * i, 0x8, 0x8).DerefString(game, 6);
+                string npcName = new DeepPointer("DeadRising.exe", vars.NPCPtr, 0x58, 0x8 * i, 0x8, 0x8).DerefString(game, 6);
                 return vars.Survivors.Contains(npcName);
             }
         }
@@ -923,15 +894,15 @@ split
     }
 
     // Otis Transmissions
-    if (settings["Otis1"])
+    if (settings["Otis"])
     {
         vars.Transmissions.UpdateAll(game);
+
         foreach (var watcher in vars.Transmissions)
         {
             if (watcher.Changed && watcher.Current > watcher.Old && !current.IsLoading)
             {
-                vars.Splits.Add("Otis1");
-                return settings["Otis1"];
+                return settings["Otis"];
             }
         }
     }
