@@ -296,6 +296,7 @@ startup
 
         settings.Add("willametteGenocider", false, "Willamette Genocider", "splits");
             settings.Add("wgSurvivors", false, "Survivors death", "willametteGenocider");
+            settings.Add("EndingF", false, "Ending F", "willametteGenocider");
 
         // Otis Transceiver Calls
         settings.Add("Transmission", false, "Otis Transmissions", "splits");
@@ -350,6 +351,7 @@ string MD5Hash;
         {26,  "case4IsabelaStart"},
         {31,  "case5Zombie"},
         {38, "Carlito3"},
+        {40, "EndingF"},
         {53,  "endingA"},
         {70,  "psychoKent3"},
         {71,  "psychoCliff"},
@@ -500,11 +502,12 @@ string MD5Hash;
     {
         var statePtr = new DeepPointer("DeadRising.exe", vars.NPCPtr, 0x58, 0x8 * i, 0x44);
         var watcher = new MemoryWatcher<byte>(statePtr) { Name = i.ToString() };
+        watcher.FailAction = MemoryWatcher.ReadFailAction.SetZeroOrNull;
 
         vars.NPCStates.Add(watcher);
     }
 
-    // Add Watchers for Transmissions, Will work for Japanese
+    // Add Watchers for Transmissions
     vars.Transmissions = new MemoryWatcherList();
 
     for (int i = 0; i < 11; ++i)
@@ -565,14 +568,6 @@ start
         if (settings["willametteGenocider"])
         {
             vars.DeadSurvivors.Clear();
-        }
-
-        if (settings["GroupSaved"])
-        {
-            foreach (var watcher in vars.NPCStates)
-            {
-                watcher.Reset();
-            }
         }
 
         // Load the PP Stickers watchers
@@ -894,13 +889,13 @@ split
     }
 
     // Otis Transmissions
-    if (settings["Otis"])
+    if (settings["Otis"] && !current.IsLoading)
     {
         vars.Transmissions.UpdateAll(game);
 
         foreach (var watcher in vars.Transmissions)
         {
-            if (watcher.Changed && watcher.Current > watcher.Old && !current.IsLoading)
+            if (watcher.Changed && watcher.Current > watcher.Old)
             {
                 return settings["Otis"];
             }
