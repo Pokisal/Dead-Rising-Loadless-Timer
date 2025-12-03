@@ -89,10 +89,10 @@ startup
             // Case 2
             settings.Add("case2", false, "Case 2 Splits", "72Hour");
                 settings.Add("case2.1", false, "Case 2-1", "case2");
-                settings.Add("case2Steven", false, "Steven", "case2");
-                settings.Add("case2FirstAid", false, "First Aid", "case2");
                 settings.Add("case2.2", false, "Case 2-2", "case2");
                 settings.Add("case2.3", false, "Case 2-3", "case2");
+                    settings.Add("case2Steven", false, "Steven", "case2");
+                    settings.Add("case2FirstAid", false, "First Aid", "case2");
                 settings.Add("case2Transitions", false, "Room Transitions", "case2");
                     settings.Add("case2SR->RT", false, "Security Room->Rooftop", "case2Transitions"); // first time
                     settings.Add("case2RT->WH", false, "Rooftop->Warehouse", "case2Transitions"); // first time
@@ -272,8 +272,6 @@ startup
             settings.Add("PPresent", false, "Paul's Present", "MRSplits");
             settings.Add("CRequest", false, "Cheryl's Request", "MRSplits");
 
-
-
         // Max Level
         settings.Add("maxLevel", false, "Max Level", "splits");
             for (int level = 5; level <= 50; level += 5)
@@ -302,6 +300,7 @@ startup
         settings.Add("Transmission", false, "Otis Transmissions", "splits");
             settings.Add("Otis", false, "Split on every Otis Transmission picked up", "Transmission");
 
+        settings.Add("100Bool", false, "100% Overtime Toggle", "splits");
 #endregion
 }
 
@@ -314,6 +313,9 @@ string MD5Hash;
 
     print("Hash is: " + MD5Hash);
 
+    vars.NPCPtr = 0x1946660;
+    vars.PhotoPtr = 0x1CF3128;
+
     switch (MD5Hash)
     {
         case "0017200B07F7721FBA8624A028D24F60":
@@ -324,14 +326,15 @@ string MD5Hash;
 
         case "015AEC72A70696A7F8F0AE57FFEE727F":
             version = "ENG";
-            vars.NPCPtr = 0x1946660;
-            vars.PhotoPtr = 0x1CF3128;
+            break;
+
+        default:
+            version = "Unknown";
             break;
     }
 
     print("Version is: " + version);
 
-    vars.ResetCounter = 0;
     // Pending splits (for PP collector mostly)
     vars.PendingSplits = 0;
 
@@ -340,6 +343,14 @@ string MD5Hash;
 
     // Keep track of hit splits
     vars.Splits = new HashSet<string>();
+
+    vars.Overtime2 = new List<string>
+    {
+        "otQueens",
+        "otSupplyHideout",
+        "otTunnel",
+        "otTank",
+    };
 
     // For splitting when hitting a cutscene
     vars.Cutscenes = new Dictionary<int, string>
@@ -619,7 +630,7 @@ split
     // Splitting when hitting cutscenes
     if (current.CutsceneId != old.CutsceneId)
     {
-        if (vars.Cutscenes.ContainsKey(current.CutsceneId) && !vars.Splits.Contains(vars.Cutscenes[current.CutsceneId]))
+        if (vars.Cutscenes.ContainsKey(current.CutsceneId) && (vars.Overtime2.Contains(vars.Cutscenes[current.CutsceneId]) && settings["100Bool"] || !vars.Splits.Contains(vars.Cutscenes[current.CutsceneId])))
         {
             vars.Splits.Add(vars.Cutscenes[current.CutsceneId]);
             return settings[vars.Cutscenes[current.CutsceneId]];
@@ -690,10 +701,6 @@ split
         if (current.CutsceneId == 144 && current.BossHealth == 0 && old.BossHealth != 0)
         {
             return settings["otBrock"];
-        }
-        if (current.CutsceneId == 134 && old.CutsceneId != 134)
-        {
-            vars.ResetCounter += 1;
         }
     }
 
