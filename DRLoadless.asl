@@ -797,6 +797,7 @@ split
             if (watcher.Current == 2)
             {
                 EmptyParty = false;
+                break;
             }
         }
 
@@ -908,4 +909,5 @@ split
             }
         }
     }
+
 }
