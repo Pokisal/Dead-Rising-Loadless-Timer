@@ -785,6 +785,32 @@ split
         }
     }
 
+    // Survivors
+    if (settings["GroupSaved"] && !current.IsLoading)
+    {
+        bool EmptyParty = true;
+
+        vars.NPCStates.UpdateAll(game);
+
+        foreach (var watcher in vars.NPCStates)
+        {
+            if (watcher.Current == 2)
+            {
+                EmptyParty = false;
+            }
+        }
+
+        foreach (var watcher in vars.NPCStates)
+        {
+            if (watcher.Changed && watcher.Current == 4 && watcher.Old != 11 && EmptyParty)
+            {
+                int i = int.Parse(watcher.Name);
+                string npcName = new DeepPointer("DeadRising.exe", vars.NPCPtr, 0x58, 0x8 * i, 0x8, 0x8).DerefString(game, 6);
+                return vars.Survivors.Contains(npcName);
+            }
+        }
+    }
+
     // Mutinies & Requests
     if (settings["MRSplits"])
     {
@@ -882,28 +908,4 @@ split
             }
         }
     }
-
-    // Survivors (Keep this the bottom most check because of the return false)
-    if (settings["GroupSaved"] && !current.IsLoading)
-    {
-        bool SplitPending = false;  
-              
-        vars.NPCStates.UpdateAll(game);
-
-        foreach (var watcher in vars.NPCStates)
-        {
-            if (watcher.Current == 2)
-            {
-                return false;
-            }
-            if (watcher.Changed && watcher.Current == 4 && watcher.Old != 11)
-            {
-                SplitPending = true;
-            }
-        }
-        return SplitPending;
-    }
 }
-
-
-
