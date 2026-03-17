@@ -303,7 +303,7 @@ startup
             settings.Add("Otis", false, "Split on every Otis Transmission picked up", "Transmission");
 
         settings.Add("100%", false, "100% Splits", "splits");
-            settings.Add("100Bool", false, "100% Overtime Toggle", "100%");
+            settings.Add("100Bool", false, "Split for Second Overtime", "100%");
             settings.Add("Helicopter", false, "Helicopter Defeated", "100%");
 
 #endregion
@@ -635,7 +635,7 @@ split
     // Splitting when hitting cutscenes
     if (current.CutsceneId != old.CutsceneId)
     {
-        if (vars.Cutscenes.ContainsKey(current.CutsceneId) && (vars.Overtime2.Contains(vars.Cutscenes[current.CutsceneId]) && settings["100Bool"] || !vars.Splits.Contains(vars.Cutscenes[current.CutsceneId])))
+        if (vars.Cutscenes.ContainsKey(current.CutsceneId) && !vars.Splits.Contains(vars.Cutscenes[current.CutsceneId]) || vars.Overtime2.Contains(vars.Cutscenes[current.CutsceneId]) && settings["100Bool"])
         {
             vars.Splits.Add(vars.Cutscenes[current.CutsceneId]);
             return settings[vars.Cutscenes[current.CutsceneId]];
