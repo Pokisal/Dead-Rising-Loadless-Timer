@@ -9,6 +9,7 @@ state("DeadRising", "ENG")
     byte Bombs : 0x1944DD8, 0x20DC0, 0x848D;
     byte MutinyByte : 0x1944DD8, 0x20EC4;
     byte RequestByte : 0x1944DD8, 0x20EC7;
+    byte HelicopterByte : 0x1CF3128, 0x40, 0x6954;
     int CampaignProgress : 0x1944DD8, 0x20DC0, 0x150;
     int CutsceneId : 0x1944DD8, 0x20DC0, 0x8308;
     int Supplies : 0x1944DD8, 0x20FB0;
@@ -33,6 +34,7 @@ state("DeadRising", "JPN")
     byte Bombs : 0x1944DD8, 0x20DC0, 0x848D;
     byte MutinyByte : 0x1944DD8, 0x20EC4;
     byte RequestByte : 0x1944DD8, 0x20EC7;
+    byte HelicopterByte : 0x1CF3170, 0x40, 0x6954;
     int CampaignProgress : 0x1944DD8, 0x20DC0, 0x150;
     int CutsceneId : 0x1944DD8, 0x20DC0, 0x8308;
     int Supplies : 0x1944DD8, 0x20FB0;
@@ -300,7 +302,10 @@ startup
         settings.Add("Transmission", false, "Otis Transmissions", "splits");
             settings.Add("Otis", false, "Split on every Otis Transmission picked up", "Transmission");
 
-        settings.Add("100Bool", false, "100% Overtime Toggle", "splits");
+        settings.Add("100%", false, "100% Splits", "splits");
+            settings.Add("100Bool", false, "100% Overtime Toggle", "100%");
+            settings.Add("Helicopter", false, "Helicopter Defeated", "100%");
+
 #endregion
 }
 
@@ -811,37 +816,37 @@ split
         }
     }
 
+    // Helicopter Split
+    if (current.RoomId == 1792 && old.HelicopterByte == current.HelicopterByte - 128)
+    {
+        return settings["Helicopter"];
+    }
+
     // Mutinies & Requests
     if (settings["MRSplits"])
     {
         if (old.MutinyByte == current.MutinyByte - 64)
         {
-            vars.Splits.Add("RAppetite");
             return settings["RAppetite"];
         }
         if (old.MutinyByte == current.MutinyByte - 32)
         {
-            vars.Splits.Add("KBetrayal");
             return settings["KBetrayal"];
         }
         if (old.RequestByte == current.RequestByte - 32)
         {
-            vars.Splits.Add("CRequest");
             return settings["CRequest"];
         }
         if (old.RequestByte == current.RequestByte - 16)
         {
-            vars.Splits.Add("PPresent");
             return settings["PPresent"];
         }
         if (old.RequestByte == current.RequestByte - 8)
         {
-            vars.Splits.Add("SGunslinger");
             return settings["SGunslinger"];
         }
         if (old.RequestByte == current.RequestByte - 4)
         {
-            vars.Splits.Add("FSommelier");
             return settings["FSommelier"];
         }
     }
